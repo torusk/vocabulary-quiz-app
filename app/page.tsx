@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useReducer, useEffect, useMemo } from "react";
+import { useState, useReducer, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Pause, Play, SkipForward } from "lucide-react"; // SkipForwardアイコンを追加
+import { Pause, Play, SkipForward } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile"; // 正確なパスを使用
 
 type Question = {
   word: string;
@@ -28,7 +29,7 @@ type QuizState = {
   fixedOptions: string[];
   isPaused: boolean;
   speedLevel: number;
-  showingAnswer: boolean; // 回答表示中かどうかを追跡する新しい状態
+  showingAnswer: boolean;
 };
 
 type QuizAction =
@@ -42,7 +43,7 @@ type QuizAction =
   | { type: "SET_FIXED_OPTIONS"; payload: string[] }
   | { type: "TOGGLE_PAUSE" }
   | { type: "SET_SPEED_LEVEL"; payload: number }
-  | { type: "SET_SHOWING_ANSWER"; payload: boolean }; // 回答表示状態を設定するアクション
+  | { type: "SET_SHOWING_ANSWER"; payload: boolean };
 
 const initialState: QuizState = {
   questions: [],
@@ -56,7 +57,7 @@ const initialState: QuizState = {
   fixedOptions: [],
   isPaused: false,
   speedLevel: 1,
-  showingAnswer: false, // 初期状態では回答を表示していない
+  showingAnswer: false,
 };
 
 function quizReducer(state: QuizState, action: QuizAction): QuizState {
@@ -73,7 +74,7 @@ function quizReducer(state: QuizState, action: QuizAction): QuizState {
             : state.score,
       };
     case "SET_CURRENT_ANSWER":
-      return { ...state, currentAnswer: action.payload, showingAnswer: true }; // 回答選択時に表示状態をtrueに
+      return { ...state, currentAnswer: action.payload, showingAnswer: true };
     case "CHECK_ANSWER":
       return {
         ...state,
@@ -90,7 +91,7 @@ function quizReducer(state: QuizState, action: QuizAction): QuizState {
         currentAnswer: null,
         isCorrect: null,
         fixedOptions: [],
-        showingAnswer: false, // 次の問題に進むときに回答表示状態をリセット
+        showingAnswer: false,
       };
     case "RESET_QUIZ":
       return { ...initialState, questions: state.questions };
@@ -114,7 +115,8 @@ export default function VocabularyQuiz() {
   const [dataset, setDataset] = useState<Dataset | null>(null);
   const [timer, setTimer] = useState<NodeJS.Timeout | null>(null);
   const [remainingTime, setRemainingTime] = useState(5000);
-  const [answerTimer, setAnswerTimer] = useState<NodeJS.Timeout | null>(null); // 回答表示タイマーを追加
+  const [answerTimer, setAnswerTimer] = useState<NodeJS.Timeout | null>(null);
+  const isMobile = useIsMobile(); // 画面サイズに基づいてレイアウトを変更するために使用
 
   // ファイルアップロード処理
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -204,7 +206,7 @@ export default function VocabularyQuiz() {
       if (!state.isPaused) {
         const nextQuestionTimer = setTimeout(() => {
           dispatch({ type: "NEXT_QUESTION" });
-        }, 5000); // 1秒から5秒に変更
+        }, 5000);
 
         setAnswerTimer(nextQuestionTimer);
 
@@ -337,7 +339,7 @@ export default function VocabularyQuiz() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-white flex items-center justify-center">
+    <div className="min-h-screen w-full bg-white">
       <div className="w-full h-screen flex flex-col">
         <header className="flex justify-between items-center p-4 border-b">
           <h1 className="text-2xl font-bold">Vocabulary Quiz</h1>
@@ -366,7 +368,7 @@ export default function VocabularyQuiz() {
               >
                 {state.isPaused ? <Play size={20} /> : <Pause size={20} />}
               </button>
-              {/* 次へボタン - 新規追加 */}
+              {/* 次へボタン */}
               <button
                 onClick={handleNextQuestion}
                 disabled={state.quizCompleted}
@@ -377,72 +379,83 @@ export default function VocabularyQuiz() {
             </div>
           </div>
         </header>
+
         <main className="flex-grow overflow-y-auto p-4">
           {!state.quizCompleted ? (
-            <>
-              {/* 残り時間のプログレスバー */}
-              <div className="mb-4 h-2 bg-gray-200 rounded-full">
-                <div
-                  className="h-2 bg-blue-600 rounded-full transition-all duration-100 ease-linear"
-                  style={{ width: `${(remainingTime / 5000) * 100}%` }}
-                ></div>
+            <div className={`h-full ${!isMobile ? "flex" : ""}`}>
+              <div className={`${!isMobile ? "w-1/2 pr-4" : "w-full"}`}>
+                {/* 残り時間のプログレスバー */}
+                <div className="mb-4 h-2 bg-gray-200 rounded-full">
+                  <div
+                    className="h-2 bg-blue-600 rounded-full transition-all duration-100 ease-linear"
+                    style={{ width: `${(remainingTime / 5000) * 100}%` }}
+                  ></div>
+                </div>
+
+                {/* 問題文と選択肢 */}
+                <div className="mb-4">
+                  <p className="text-xl mb-4">{currentQuestion.question}</p>
+                  <div className="space-y-2">
+                    {/* 選択肢ボタン - コンパクトに */}
+                    {state.fixedOptions.map((option, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleAnswer(option)}
+                        disabled={state.currentAnswer !== null}
+                        className={`w-full p-3 text-base font-semibold rounded-lg transition-colors duration-200 ${
+                          state.currentAnswer === null
+                            ? "bg-blue-100 hover:bg-blue-200 text-blue-800"
+                            : state.currentAnswer === option
+                            ? state.isCorrect
+                              ? "bg-green-200 text-green-800"
+                              : "bg-red-200 text-red-800"
+                            : option === currentQuestion.word &&
+                              !state.isCorrect
+                            ? "bg-green-200 text-green-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
-              <p className="text-xl mb-4">{currentQuestion.question}</p>
-              <div className="space-y-4">
-                {/* 選択肢ボタン */}
-                {state.fixedOptions.map((option, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleAnswer(option)}
-                    disabled={state.currentAnswer !== null}
-                    className={`w-full p-4 text-lg font-semibold rounded-lg transition-colors duration-200 ${
-                      state.currentAnswer === null
-                        ? "bg-blue-100 hover:bg-blue-200 text-blue-800"
-                        : state.currentAnswer === option
-                        ? state.isCorrect
-                          ? "bg-green-200 text-green-800"
-                          : "bg-red-200 text-red-800"
-                        : option === currentQuestion.word && !state.isCorrect
-                        ? "bg-green-200 text-green-800"
-                        : "bg-gray-100 text-gray-800"
+
+              {/* 回答結果表示部分 - 横並び時は右側に表示 */}
+              <div className={`${!isMobile ? "w-1/2 pl-4" : "w-full"}`}>
+                {(state.isCorrect !== null || state.currentAnswer !== null) && (
+                  <div
+                    className={`p-4 rounded ${
+                      state.isCorrect
+                        ? "bg-green-100 text-green-800"
+                        : "bg-red-100 text-red-800"
                     }`}
                   >
-                    {option}
-                  </button>
-                ))}
-              </div>
-              {/* 回答結果表示部分 */}
-              {(state.isCorrect !== null || state.currentAnswer !== null) && (
-                <div
-                  className={`mt-4 p-4 rounded ${
-                    state.isCorrect
-                      ? "bg-green-100 text-green-800"
-                      : "bg-red-100 text-red-800"
-                  }`}
-                >
-                  <p className="text-xl font-bold mb-2">
-                    {state.isCorrect ? "正解！！" : "不正解！"}
-                  </p>
-                  <div className="flex justify-start gap-4 mt-2">
-                    <p>
-                      <span className="font-bold">正解:</span>{" "}
-                      {currentQuestion.word}
+                    <p className="text-xl font-bold mb-2">
+                      {state.isCorrect ? "正解！！" : "不正解！"}
                     </p>
-                    <p>
-                      <span className="font-bold">意味:</span>{" "}
-                      {currentQuestion.meaning}
+                    <div className="flex flex-col justify-start gap-2 mt-2">
+                      <p>
+                        <span className="font-bold">正解:</span>{" "}
+                        {currentQuestion.word}
+                      </p>
+                      <p>
+                        <span className="font-bold">意味:</span>{" "}
+                        {currentQuestion.meaning}
+                      </p>
+                    </div>
+                    <p className="mt-2">
+                      <span className="font-bold">例文:</span>{" "}
+                      {highlightAnswer(
+                        currentQuestion.example,
+                        currentQuestion.word
+                      )}
                     </p>
                   </div>
-                  <p className="mt-2">
-                    <span className="font-bold">例文:</span>{" "}
-                    {highlightAnswer(
-                      currentQuestion.example,
-                      currentQuestion.word
-                    )}
-                  </p>
-                </div>
-              )}
-            </>
+                )}
+              </div>
+            </div>
           ) : (
             <>
               {/* クイズ完了画面 */}
@@ -453,6 +466,7 @@ export default function VocabularyQuiz() {
             </>
           )}
         </main>
+
         <footer className="p-4 border-t">
           {/* クイズ完了時のみリスタートボタンを表示 */}
           {state.quizCompleted && (
