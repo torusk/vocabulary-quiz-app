@@ -261,10 +261,16 @@ export default function VocabularyQuiz() {
     dispatch({ type: "SET_SPEED_LEVEL", payload: nextLevel });
   };
 
-  // 次の問題へ進む処理
+  // 次の問題へ進む処理 - 修正版
   const handleNextQuestion = () => {
-    if (answerTimer) clearTimeout(answerTimer);
-    dispatch({ type: "NEXT_QUESTION" });
+    if (state.currentAnswer === null) {
+      // まだ回答が表示されていない場合は、正解を表示する
+      handleAnswer(currentQuestion.word);
+    } else {
+      // 既に回答が表示されている場合は、次の問題へ進む
+      if (answerTimer) clearTimeout(answerTimer);
+      dispatch({ type: "NEXT_QUESTION" });
+    }
   };
 
   // ランダムな選択肢を生成
