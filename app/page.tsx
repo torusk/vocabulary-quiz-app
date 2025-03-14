@@ -382,7 +382,7 @@ export default function VocabularyQuiz() {
 
         <main className="flex-grow overflow-y-auto p-4">
           {!state.quizCompleted ? (
-            <div className={`h-full ${!isMobile ? "flex" : ""}`}>
+            <div className={`h-full ${!isMobile ? "flex flex-wrap" : ""}`}>
               <div className={`${!isMobile ? "w-1/2 pr-4" : "w-full"}`}>
                 {/* 残り時間のプログレスバー */}
                 <div className="mb-4 h-2 bg-gray-200 rounded-full">
@@ -392,33 +392,33 @@ export default function VocabularyQuiz() {
                   ></div>
                 </div>
 
-                {/* 問題文と選択肢 */}
+                {/* 問題文 */}
                 <div className="mb-4">
                   <p className="text-xl mb-4">{currentQuestion.question}</p>
-                  <div className="space-y-2">
-                    {/* 選択肢ボタン - コンパクトに */}
-                    {state.fixedOptions.map((option, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handleAnswer(option)}
-                        disabled={state.currentAnswer !== null}
-                        className={`w-full p-3 text-base font-semibold rounded-lg transition-colors duration-200 ${
-                          state.currentAnswer === null
-                            ? "bg-blue-100 hover:bg-blue-200 text-blue-800"
-                            : state.currentAnswer === option
-                            ? state.isCorrect
-                              ? "bg-green-200 text-green-800"
-                              : "bg-red-200 text-red-800"
-                            : option === currentQuestion.word &&
-                              !state.isCorrect
+                </div>
+
+                {/* 選択肢 - グリッドレイアウト（2x2） */}
+                <div className="grid grid-cols-2 gap-2 mb-4">
+                  {state.fixedOptions.map((option, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleAnswer(option)}
+                      disabled={state.currentAnswer !== null}
+                      className={`p-3 text-base font-semibold rounded-lg transition-colors duration-200 ${
+                        state.currentAnswer === null
+                          ? "bg-blue-100 hover:bg-blue-200 text-blue-800"
+                          : state.currentAnswer === option
+                          ? state.isCorrect
                             ? "bg-green-200 text-green-800"
-                            : "bg-gray-100 text-gray-800"
-                        }`}
-                      >
-                        {option}
-                      </button>
-                    ))}
-                  </div>
+                            : "bg-red-200 text-red-800"
+                          : option === currentQuestion.word && !state.isCorrect
+                          ? "bg-green-200 text-green-800"
+                          : "bg-gray-100 text-gray-800"
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  ))}
                 </div>
               </div>
 
