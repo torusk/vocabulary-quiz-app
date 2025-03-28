@@ -8,7 +8,9 @@ export const metadata: Metadata = {
   icons: {
     icon: '/E.png',
     apple: '/ei.png',
+    shortcut: '/E.png',
   },
+  manifest: '/manifest.json',
 }
 
 export default function RootLayout({
